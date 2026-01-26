@@ -2,83 +2,85 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Hoang Cloud API Tool</title>
+  <title>Create Order - Hoang Cloud</title>
   <style>
     body {
       font-family: Arial;
-      max-width: 900px;
+      max-width: 600px;
       margin: auto;
       padding: 20px;
     }
-    h2 { margin-top: 30px; }
-    input, textarea, select, button {
+    input, textarea, button {
       width: 100%;
       margin: 6px 0;
       padding: 8px;
     }
-    textarea { height: 120px; }
-    button { cursor: pointer; }
+    textarea { height: 100px; }
     pre {
       background: #111;
       color: #0f0;
       padding: 10px;
-      overflow-x: auto;
     }
   </style>
 </head>
 <body>
 
-<h1>Hoang Cloud API – UI cá nhân</h1>
+<h2>🛒 Tạo đơn hàng (create_order)</h2>
 
 <label>Token</label>
 <input id="token" value="0d64ac97f0e52fe735af6639c23ccf71303f6d13f6a414">
 
-<hr>
+<label>Product ID</label>
+<input id="product_id" value="ID14">
 
-<h2>🔗 Get All Link</h2>
-<button onclick="getAllLink()">Lấy danh sách link</button>
-
-<h2>🔗 Generate Link</h2>
-<label>Web Shortened</label>
-<input id="web_shortened" value="yeulink">
-<button onclick="generateLink()">Tạo link</button>
-
-<h2>🛒 Create Order</h2>
-<input id="product_id" placeholder="Product ID (VD: ID12)">
+<label>Số lượng</label>
 <input id="quantity" type="number" value="1">
-<input id="input_data" placeholder="Input data (nếu có)">
-<button onclick="createOrder()">Tạo đơn</button>
 
-<h2>📦 Check Order</h2>
-<input id="order_id" placeholder="Order ID">
-<button onclick="checkOrder()">Kiểm tra đơn</button>
+<label>Input data (nếu có)</label>
+<textarea id="input_data"></textarea>
 
-<h2>☁️ Buy Device Cloud</h2>
-<select id="cloud_id">
-  <option value="UG">UG - Ugphone</option>
-  <option value="VS">VS - Vsphone</option>
-  <option value="VM">VM - Vmos Cloud</option>
-</select>
+<button onclick="createOrder()">🚀 Tạo đơn</button>
 
-<select id="server">
-  <option value="SG">Singapore</option>
-  <option value="HK">Hong Kong</option>
-  <option value="JP">Japan</option>
-  <option value="DE">Germany</option>
-  <option value="US">America</option>
-</select>
-
-<input id="cloud_input" placeholder="Input data (LocalStorage hoặc acc|pass)">
-<button onclick="buyCloud()">Mua cloud</button>
-
-<h2>📡 Check UGPhone Status</h2>
-<button onclick="checkUG()">Check trạng thái</button>
-
-<h2>📄 Kết quả</h2>
+<h3>Kết quả</h3>
 <pre id="result"></pre>
 
 <script>
-const API = "https://hoang.cloud/dev";
+async function createOrder() {
+  const payload = {
+    token: document.getElementById("token").value,
+    product_id: document.getElementById("product_id").value,
+    quantity: Number(document.getElementById("quantity").value),
+    input_data: document.getElementById("input_data").value
+  };
 
-function show(data) {
-  do
+  try {
+    const res = await fetch("https://hoang.cloud/dev/create_order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    // Lưu order_id nếu có
+    if (data?.data?.order_id) {
+      let orders = JSON.parse(localStorage.getItem("orders") || "[]");
+      orders.push({
+        time: new Date().toISOString(),
+        product_id: payload.product_id,
+        order_id: data.data.order_id
+      });
+      localStorage.setItem("orders", JSON.stringify(orders));
+    }
+
+    document.getElementById("result").textContent =
+      JSON.stringify(data, null, 2);
+
+  } catch (e) {
+    document.getElementById("result").textContent = e.toString();
+  }
+}
+</script>
+
+</body>
+</html>
