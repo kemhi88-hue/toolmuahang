@@ -53,34 +53,68 @@ async function createOrder() {
     input_data: document.getElementById("input_data").value
   };
 
+  const resultEl = document.getElementById("result");
+  resultEl.textContent = "⏳ Đang gửi request...\n";
+
   try {
     const res = await fetch("https://hoang.cloud/dev/create_order", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    // Log HTTP status
+    resultEl.textContent += `HTTP Status: ${res.status}\n`;
 
-    // Lưu order_id nếu có
-    if (data?.data?.order_id) {
-      let orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      orders.push({
-        time: new Date().toISOString(),
-        product_id: payload.product_id,
-        order_id: data.data.order_id
-      });
-      localStorage.setItem("orders", JSON.stringify(orders));
+    const text = await res.text();
+
+    // Log raw response
+    resultEl.textContent += `Raw response:\n${text}\n`;
+
+    // Thử parse JSON
+    try {
+      const data = JSON.parse(text);
+      resultEl.textContent += "\nParsed JSON:\n" +
+        JSON.stringify(data, null, 2);
+
+      // Lưu order_id
+      if (data?.data?.order_id) {
+        let orders = JSON.parse(localStorage.getItem("orders") || "[]");
+        orders.push({
+          time: new Date().toISOString(),
+          product_id: payload.product_id,
+          order_id: data.data.order_id
+        });
+        localStorage.setItem("orders", JSON.stringify(orders));
+      }
+    } catch (jsonErr) {
+      resultEl.textContent +=
+        "\n⚠️ Không parse được JSON (response không phải JSON)";
     }
 
-    document.getElementById("result").textContent =
-      JSON.stringify(data, null, 2);
+  } catch (err) {
+    // FETCH FAILED
+    resultEl.textContent +=
+`❌ FETCH FAILED
+Tên lỗi: ${err.name}
+Message: ${err.message}
 
-  } catch (e) {
-    document.getElementById("result").textContent = e.toString();
+👉 Khả năng cao:
+- API bị CORS block
+- Server không cho gọi trực tiếp từ browser
+- Mạng bị chặn / DNS lỗi
+
+👉 Test nhanh:
+- Mở DevTools (F12) → Network → xem request có xuất hiện không
+- Thử gọi bằng Postman / curl
+`;
   }
 }
 </script>
 
+
 </body>
 </html>
+
