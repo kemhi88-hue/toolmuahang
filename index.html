@@ -1,120 +1,40 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>Create Order - Hoang Cloud</title>
-  <style>
-    body {
-      font-family: Arial;
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
-    input, textarea, button {
-      width: 100%;
-      margin: 6px 0;
-      padding: 8px;
-    }
-    textarea { height: 100px; }
-    pre {
-      background: #111;
-      color: #0f0;
-      padding: 10px;
-    }
-  </style>
-</head>
-<body>
+<meta charset="utf-8">
 
-<h2>🛒 Tạo đơn hàng (create_order)</h2>
+<h3>Mua sản phẩm Hanami</h3>
 
-<label>Token</label>
-<input id="token" value="0d64ac97f0e52fe735af6639c23ccf71303f6d13f6a414">
+<input id="pid" value="ID14" placeholder="product_id"><br><br>
+<input id="qty" type="number" value="1"><br><br>
+<button onclick="buy()">MUA</button>
 
-<label>Product ID</label>
-<input id="product_id" value="ID14">
-
-<label>Số lượng</label>
-<input id="quantity" type="number" value="1">
-
-<label>Input data (nếu có)</label>
-<textarea id="input_data"></textarea>
-
-<button onclick="createOrder()">🚀 Tạo đơn</button>
-
-<h3>Kết quả</h3>
-<pre id="result"></pre>
+<pre id="log"></pre>
 
 <script>
-async function createOrder() {
-  const payload = {
-    token: document.getElementById("token").value,
-    product_id: document.getElementById("product_id").value,
-    quantity: Number(document.getElementById("quantity").value),
-    input_data: document.getElementById("input_data").value
-  };
-
-  const resultEl = document.getElementById("result");
-  resultEl.textContent = "⏳ Đang gửi request...\n";
+async function buy() {
+  log.textContent = "Đang gửi request...";
 
   try {
-    const res = await fetch("https://hoang.cloud/dev/create_order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    // Log HTTP status
-    resultEl.textContent += `HTTP Status: ${res.status}\n`;
-
-    const text = await res.text();
-
-    // Log raw response
-    resultEl.textContent += `Raw response:\n${text}\n`;
-
-    // Thử parse JSON
-    try {
-      const data = JSON.parse(text);
-      resultEl.textContent += "\nParsed JSON:\n" +
-        JSON.stringify(data, null, 2);
-
-      // Lưu order_id
-      if (data?.data?.order_id) {
-        let orders = JSON.parse(localStorage.getItem("orders") || "[]");
-        orders.push({
-          time: new Date().toISOString(),
-          product_id: payload.product_id,
-          order_id: data.data.order_id
-        });
-        localStorage.setItem("orders", JSON.stringify(orders));
+    const res = await fetch(
+      "https://corsproxy.io/?https://hoang.cloud/dev/create_order",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: "0d64ac97f0e52fe735af6639c23ccf71303f6d13f6a414",
+          product_id: pid.value,
+          quantity: Number(qty.value),
+          input_data: ""
+        })
       }
-    } catch (jsonErr) {
-      resultEl.textContent +=
-        "\n⚠️ Không parse được JSON (response không phải JSON)";
-    }
+    );
 
-  } catch (err) {
-    // FETCH FAILED
-    resultEl.textContent +=
-`❌ FETCH FAILED
-Tên lỗi: ${err.name}
-Message: ${err.message}
+    const data = await res.json();
+    log.textContent = JSON.stringify(data, null, 2);
 
-👉 Khả năng cao:
-- API bị CORS block
-- Server không cho gọi trực tiếp từ browser
-- Mạng bị chặn / DNS lỗi
-
-👉 Test nhanh:
-- Mở DevTools (F12) → Network → xem request có xuất hiện không
-- Thử gọi bằng Postman / curl
-`;
+  } catch (e) {
+    log.textContent = "❌ Lỗi:\n" + e.toString();
   }
 }
 </script>
-
-
-</body>
 </html>
-
