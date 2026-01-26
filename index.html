@@ -2,69 +2,83 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Hoang Cloud - Mua hàng</title>
+  <title>Hoang Cloud API Tool</title>
   <style>
     body {
       font-family: Arial;
-      max-width: 700px;
+      max-width: 900px;
       margin: auto;
       padding: 20px;
     }
-    input, textarea, button {
+    h2 { margin-top: 30px; }
+    input, textarea, select, button {
       width: 100%;
       margin: 6px 0;
       padding: 8px;
     }
-    textarea { height: 160px; }
+    textarea { height: 120px; }
     button { cursor: pointer; }
+    pre {
+      background: #111;
+      color: #0f0;
+      padding: 10px;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
 
-<h2>Hoang Cloud API – UI dùng cá nhân</h2>
+<h1>Hoang Cloud API – UI cá nhân</h1>
 
-<label>API Key</label>
-<input id="apiKey" value="YOUR_API_KEY_HERE">
+<label>Token</label>
+<input id="token" value="0d64ac97f0e52fe735af6639c23ccf71303f6d13f6a414">
 
-<label>Endpoint</label>
-<input id="endpoint" value="https://hoang.cloud/api/buy">
+<hr>
 
-<label>Payload (JSON)</label>
-<textarea id="payload">
-{
-  "product_id": 123,
-  "quantity": 1
-}
-</textarea>
+<h2>🔗 Get All Link</h2>
+<button onclick="getAllLink()">Lấy danh sách link</button>
 
-<button onclick="callApi()">Gửi mua hàng</button>
+<h2>🔗 Generate Link</h2>
+<label>Web Shortened</label>
+<input id="web_shortened" value="yeulink">
+<button onclick="generateLink()">Tạo link</button>
 
-<h3>Kết quả</h3>
-<textarea id="result"></textarea>
+<h2>🛒 Create Order</h2>
+<input id="product_id" placeholder="Product ID (VD: ID12)">
+<input id="quantity" type="number" value="1">
+<input id="input_data" placeholder="Input data (nếu có)">
+<button onclick="createOrder()">Tạo đơn</button>
+
+<h2>📦 Check Order</h2>
+<input id="order_id" placeholder="Order ID">
+<button onclick="checkOrder()">Kiểm tra đơn</button>
+
+<h2>☁️ Buy Device Cloud</h2>
+<select id="cloud_id">
+  <option value="UG">UG - Ugphone</option>
+  <option value="VS">VS - Vsphone</option>
+  <option value="VM">VM - Vmos Cloud</option>
+</select>
+
+<select id="server">
+  <option value="SG">Singapore</option>
+  <option value="HK">Hong Kong</option>
+  <option value="JP">Japan</option>
+  <option value="DE">Germany</option>
+  <option value="US">America</option>
+</select>
+
+<input id="cloud_input" placeholder="Input data (LocalStorage hoặc acc|pass)">
+<button onclick="buyCloud()">Mua cloud</button>
+
+<h2>📡 Check UGPhone Status</h2>
+<button onclick="checkUG()">Check trạng thái</button>
+
+<h2>📄 Kết quả</h2>
+<pre id="result"></pre>
 
 <script>
-async function callApi() {
-  try {
-    const res = await fetch(
-      document.getElementById('endpoint').value,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + document.getElementById('apiKey').value
-        },
-        body: document.getElementById('payload').value
-      }
-    );
+const API = "https://hoang.cloud/dev";
 
-    const data = await res.json();
-    document.getElementById('result').value =
-      JSON.stringify(data, null, 2);
-  } catch (e) {
-    document.getElementById('result').value = e.toString();
-  }
-}
-</script>
-
-</body>
-</html>
+function show(data) {
+  do
