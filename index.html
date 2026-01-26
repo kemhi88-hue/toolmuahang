@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hoang Cloud - Mua hàng</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, textarea, button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 8px;
+    }
+    textarea { height: 160px; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h2>Hoang Cloud API – UI dùng cá nhân</h2>
+
+<label>API Key</label>
+<input id="apiKey" value="YOUR_API_KEY_HERE">
+
+<label>Endpoint</label>
+<input id="endpoint" value="https://hoang.cloud/api/buy">
+
+<label>Payload (JSON)</label>
+<textarea id="payload">
+{
+  "product_id": 123,
+  "quantity": 1
+}
+</textarea>
+
+<button onclick="callApi()">Gửi mua hàng</button>
+
+<h3>Kết quả</h3>
+<textarea id="result"></textarea>
+
+<script>
+async function callApi() {
+  try {
+    const res = await fetch(
+      document.getElementById('endpoint').value,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + document.getElementById('apiKey').value
+        },
+        body: document.getElementById('payload').value
+      }
+    );
+
+    const data = await res.json();
+    document.getElementById('result').value =
+      JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById('result').value = e.toString();
+  }
+}
+</script>
+
+</body>
+</html>
