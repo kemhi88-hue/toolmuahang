@@ -3,137 +3,95 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>VSPhone – Quản lý tài khoản</title>
-
+<title>VSPhone – Quản lý & Buff</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #fff;
-  color: #000;
-  padding: 20px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-th, td {
-  border: 1px solid #ccc;
-  padding: 8px;
-  text-align: left;
-}
-th {
-  background: #eee;
-}
-.btn {
-  padding: 4px 10px;
-  background: #007bff;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-.btn:hover {
-  background: #0056b3;
-}
-.password-cell {
-  font-family: monospace;
-}
+    body { font-family: Arial, sans-serif; background: #f4f7f6; padding: 20px; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #f8f9fa; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+    .btn-login { background: #007bff; }
+    .btn-buff { background: #28a745; margin-left: 5px; }
+    .channel-input { padding: 8px; width: 200px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
 </style>
 </head>
-
 <body>
 
-<h2>VSPhone – Quản lý tài khoản</h2>
-<p>Dữ liệu load trực tiếp từ Google Sheets.</p>
+<div class="container">
+    <h2>VSPhone – Quản lý tài khoản</h2>
+    <div>
+        <label>Nhập Channel ID Discord: </label>
+        <input type="text" id="channelId" class="channel-input" placeholder="Ví dụ: 123456789012345678" value="">
+    </div>
 
-<table id="accountTable">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Nền tảng</th>
-      <th>Email</th>
-      <th>Password</th>
-      <th>Trạng thái</th>
-      <th>Thao tác</th>
-    </tr>
-  </thead>
-  <tbody id="tbody">
-    <tr><td colspan="6">Đang tải dữ liệu...</td></tr>
-  </tbody>
-</table>
+    <table id="accountTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nền tảng</th>
+                <th>Email</th>
+                <th>Password</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
+        </tbody>
+    </table>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
-const SHEET_JSON_URL =
-  'https://opensheet.elk.sh/1fU4ppbOWDikPkEWUdXiyqrUn8JHXvt-PJjS778J-R8M/Trang%20t%C3%ADnh1';
+const SHEET_JSON_URL = 'https://opensheet.elk.sh/1fU4ppbOWDikPkEWUdXiyqrUn8JHXvt-PJjS778J-R8M/Trang%20t%C3%ADnh1';
 
 async function loadSheet() {
-  try {
-    const res = await fetch(SHEET_JSON_URL);
-    const data = await res.json();
-
-    console.log('[SHEET DATA]', data);
-
-    if (!Array.isArray(data) || data.length === 0) {
-      document.querySelector('#tbody').innerHTML =
-        '<tr><td colspan="6">❌ Sheet rỗng</td></tr>';
-      return;
+    try {
+        const res = await fetch(SHEET_JSON_URL);
+        const data = await res.json();
+        renderTable(data);
+    } catch (e) {
+        document.querySelector('#tbody').innerHTML = '<tr><td colspan="5">❌ Lỗi load dữ liệu</td></tr>';
     }
-
-    renderTable(data);
-  } catch (e) {
-    console.error(e);
-    document.querySelector('#tbody').innerHTML =
-      '<tr><td colspan="6">❌ Lỗi load sheet</td></tr>';
-  }
 }
 
 function renderTable(rows) {
-  const tbody = document.querySelector('#tbody');
-  tbody.innerHTML = '';
-
-  rows.forEach((row, i) => {
-    const email = row.email?.trim();
-    const pass = row.password?.trim();
-
-    if (!email || !pass) return;
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${row.platform || 'VSPhone'}</td>
-      <td>${email}</td>
-      <td class="password-cell">${pass}</td>
-      <td>${row.status || ''}</td>
-      <td>
-        <button class="btn" onclick="login('${email}','${pass}')">
-          🚀 LOGIN
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
+    const tbody = document.querySelector('#tbody');
+    tbody.innerHTML = '';
+    rows.forEach((row, i) => {
+        if (!row.email) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${row.platform || 'VSPhone'}</td>
+            <td>${row.email}</td>
+            <td style="font-family: monospace;">${row.password}</td>
+            <td>
+                <button class="btn btn-login" onclick="login('${row.email}','${row.password}')">🚀 LOGIN</button>
+                <button class="btn btn-buff" onclick="buff()">🔥 BUFF</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function login(email, pass) {
-  console.log('[LOGIN]', email, pass);
+    const newWin = window.open('https://cloud.vsphone.com/login', '_blank');
+    setTimeout(() => {
+        newWin.postMessage({ type: 'AUTO_LOGIN', email, password: pass }, 'https://cloud.vsphone.com');
+    }, 2000);
+}
 
-  // Mở tab login
-  const newWin = window.open('https://cloud.vsphone.com/login', '_blank');
-
-  // Chuẩn bị dữ liệu gửi
-  const creds = { type: 'AUTO_LOGIN', email, password: pass };
-  const targetOrigin = 'https://cloud.vsphone.com';
-
-  // Gửi message sau 1 giây (đảm bảo tab đã load)
-  setTimeout(() => {
-    newWin.postMessage(creds, targetOrigin);
-    console.log('[LOGIN] Credentials sent via postMessage');
-  }, 1000);
+function buff() {
+    const channelId = document.getElementById('channelId').value;
+    if (!channelId) {
+        alert("Vui lòng nhập Channel ID trước!");
+        return;
+    }
+    // Mở Discord với tham số buff=true để script tự chạy
+    window.open(`https://discord.com/channels/@me/${channelId}?buff=true`, '_blank');
 }
 
 loadSheet();
 </script>
-
 </body>
 </html>
