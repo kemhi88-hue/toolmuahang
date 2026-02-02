@@ -2,169 +2,108 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>VSPhone – Hệ thống Quản lý & Buff</title>
+    <title>VSPhone Dashboard - Cập nhật Cột D</title>
     <style>
-        :root {
-            --primary: #5865f2;
-            --success: #3ba55d;
-            --bg: #f3f4f6;
-            --text: #2d3436;
-        }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; }
-        h2 { margin: 0; color: var(--primary); }
-
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #edf2f7; text-align: left; }
-        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; }
-        
-        .input-channel { 
-            padding: 6px 10px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 4px; 
-            width: 160px; 
-            font-size: 13px; 
-            outline: none;
-        }
-        .input-channel:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2); }
-
-        .btn { 
-            padding: 8px 14px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 13px; 
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .btn-login { background: var(--primary); color: white; }
-        .btn-buff { background: var(--success); color: white; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-
-        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; background: #e2e8f0; color: #475569; }
-        .password-cell { font-family: 'Courier New', monospace; font-weight: bold; color: #e17055; }
+        :root { --primary: #5865f2; --success: #3ba55d; --bg: #f3f4f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #edf2f7; text-align: left; }
+        th { background: #f8fafc; color: #64748b; font-size: 11px; text-transform: uppercase; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 11px; }
+        .btn-login { background: var(--primary); }
+        .btn-buff { background: var(--success); }
+        .invite-link { font-family: monospace; font-size: 11px; color: #2ecc71; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header>
-        <h2>VSPhone Dashboard</h2>
-        <div id="loading-status" class="status-badge">Đang đồng bộ dữ liệu...</div>
-    </header>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>VSPhone Management</h2>
+        <div id="sync-status" style="font-size: 12px; font-weight: bold;">Trạng thái: Đang kết nối...</div>
+    </div>
 
     <table id="accountTable">
         <thead>
             <tr>
                 <th>#</th>
-                <th>Email</th>
-                <th>Mật khẩu</th>
-                <th>Discord Channel ID</th>
+                <th>Platform (A)</th>
+                <th>Email (B)</th>
+                <th>Password (C)</th>
+                <th>Mã mời (D)</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
-        <tbody id="tbody">
-            <tr><td colspan="5" style="text-align:center; padding: 40px;">Đang tải dữ liệu từ Google Sheets...</td></tr>
-        </tbody>
+        <tbody id="tbody"></tbody>
     </table>
 </div>
 
 <script>
-// URL OpenSheet (Dữ liệu từ Google Sheets của bạn)
+// DÁN LINK WEB APP CỦA BẠN VÀO ĐÂY
+const WEB_APP_URL = 'URL_WEB_APP_CỦA_BẠN'; 
 const SHEET_JSON_URL = 'https://opensheet.elk.sh/1fU4ppbOWDikPkEWUdXiyqrUn8JHXvt-PJjS778J-R8M/Trang%20t%C3%ADnh1';
 
-async function loadSheet() {
-    try {
-        const res = await fetch(SHEET_JSON_URL);
-        const data = await res.json();
+let currentEmail = null;
+let currentIndex = null;
 
-        if (!Array.isArray(data) || data.length === 0) {
-            document.querySelector('#tbody').innerHTML = '<tr><td colspan="5">❌ Sheet rỗng hoặc không đúng định dạng</td></tr>';
-            return;
+setInterval(async () => {
+    const collectedLink = localStorage.getItem('VS_LAST_COLLECTED_LINK');
+    if (collectedLink && currentEmail) {
+        const cell = document.getElementById(`invite-res-${currentIndex}`);
+        cell.innerText = "⏳ Đang lưu...";
+        try {
+            await fetch(`${WEB_APP_URL}?email=${encodeURIComponent(currentEmail)}&code=${encodeURIComponent(collectedLink)}`, { mode: 'no-cors' });
+            cell.innerText = collectedLink;
+            document.getElementById('sync-status').innerText = "✅ Đã lưu xong cho " + currentEmail;
+        } catch (e) {
+            cell.innerText = "❌ Lỗi lưu";
         }
-
-        renderTable(data);
-        document.getElementById('loading-status').innerText = `Tổng cộng: ${data.length} tài khoản`;
-    } catch (e) {
-        console.error(e);
-        document.querySelector('#tbody').innerHTML = '<tr><td colspan="5">❌ Lỗi load sheet. Kiểm tra lại quyền chia sẻ.</td></tr>';
+        localStorage.removeItem('VS_LAST_COLLECTED_LINK');
+        currentEmail = null;
     }
-}
+}, 1000);
 
-function renderTable(rows) {
+async function loadData() {
+    const res = await fetch(SHEET_JSON_URL);
+    const data = await res.json();
     const tbody = document.querySelector('#tbody');
     tbody.innerHTML = '';
-
-    rows.forEach((row, i) => {
-        const email = row.email?.trim();
-        const pass = row.password?.trim();
-        const savedChannelId = row.channel_id?.trim() || ""; // Tự lấy ID nếu trong sheet có cột channel_id
-
-        if (!email || !pass) return;
-
+    data.forEach((row, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${i + 1}</td>
-            <td><strong>${email}</strong></td>
-            <td class="password-cell">${pass}</td>
+            <td>${row.platform || ''}</td>
+            <td><strong>${row.email}</strong></td>
+            <td style="font-family:monospace">${row.password}</td>
+            <td class="invite-link" id="invite-res-${i}">${row.invite || 'Chờ nhặt mã...'}</td>
             <td>
-                <input type="text" class="input-channel" id="channel-${i}" 
-                       placeholder="Dán ID kênh..." value="${savedChannelId}">
-            </td>
-            <td>
-                <button class="btn btn-login" onclick="login('${email}','${pass}')">
-                    🚀 LOGIN
-                </button>
-                <button class="btn btn-buff" onclick="buff(${i})">
-                    🔥 BUFF
-                </button>
+                <button class="btn btn-login" onclick="login('${row.email}','${row.password}', ${i})">LOGIN</button>
+                <button class="btn btn-buff" onclick="buff(${i})">BUFF</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function login(email, pass) {
-    console.log('[LOGIN]', email);
-    // 1. Mở tab đăng nhập
-    const newWin = window.open('https://cloud.vsphone.com/login', '_blank');
-
-    // 2. Gửi credentials qua postMessage (Yêu cầu Userscript đang chạy tại VSPhone)
+function login(email, pass, index) {
+    currentIndex = index;
+    currentEmail = email;
+    const win = window.open('https://cloud.vsphone.com/login', '_blank');
     setTimeout(() => {
-        newWin.postMessage({ type: 'AUTO_LOGIN', email, password: pass }, 'https://cloud.vsphone.com');
-        
-        // 3. Sau khi login, hướng người dùng về trang Invite để Userscript nhặt mã
-        setTimeout(() => {
-            newWin.location.href = "https://cloud.vsphone.com/share/invite";
-        }, 3000);
+        win.postMessage({ type: 'AUTO_LOGIN', email, password: pass }, 'https://cloud.vsphone.com');
+        setTimeout(() => { win.location.href = "https://cloud.vsphone.com/share/invite"; }, 3000);
     }, 2000);
 }
 
 function buff(index) {
-    const channelId = document.getElementById(`channel-${index}`).value.trim();
-    
-    if (!channelId) {
-        alert("Vui lòng nhập Channel ID cho dòng này!");
-        document.getElementById(`channel-${index}`).focus();
-        return;
-    }
-
-    // Mở Discord kèm tham số buff=true để Userscript tự kích hoạt gõ /buffvsphone
-    const discordUrl = `https://discord.com/channels/@me/${channelId}?buff=true`;
-    window.open(discordUrl, '_blank');
+    const invite = document.getElementById(`invite-res-${index}`).innerText;
+    if (invite.includes("Chờ")) return alert("Vui lòng lấy mã trước");
+    const channelId = prompt("Nhập ID kênh Discord:");
+    if (channelId) window.open(`https://discord.com/channels/@me/${channelId}?buff=true`, '_blank');
 }
 
-// Khởi chạy
-loadSheet();
+loadData();
 </script>
-
 </body>
 </html>
-
