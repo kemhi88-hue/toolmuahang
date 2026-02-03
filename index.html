@@ -2,123 +2,148 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
-    <title>VSPhone Local Dashboard</title>
+    <title>VSPhone Cloud Dashboard</title>
     <style>
         :root { --primary: #5865f2; --success: #3ba55d; --bg: #f3f4f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; border-bottom: 1px solid #edf2f7; text-align: left; }
         th { background: #f8fafc; color: #64748b; font-size: 11px; text-transform: uppercase; }
-        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 11px; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 11px; transition: 0.2s; }
         .btn-login { background: var(--primary); }
         .btn-buff { background: var(--success); }
+        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
         .invite-link { font-family: monospace; font-size: 11px; color: #2ecc71; font-weight: bold; }
-        .input-channel { padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 150px; }
+        #sync-status { font-size: 12px; font-weight: bold; padding: 5px 12px; border-radius: 20px; background: #dfe6e9; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🚀 Dashboard Lưu Tại Chỗ</h2>
-    <p style="font-size: 12px; color: #666;">Dữ liệu lưu trực tiếp trên trình duyệt của bạn (LocalStorage).</p>
+    <header>
+        <h2>🚀 VSPhone Cloud Manager</h2>
+        <div id="sync-status">Đang kết nối Cloud...</div>
+    </header>
 
     <table id="accountTable">
         <thead>
             <tr>
                 <th>#</th>
-                <th>Email</th>
-                <th>Password</th>
-                <th>Channel ID</th>
-                <th>Mã mời đã nhặt</th>
+                <th>Platform</th>
+                <th>Email (Cột B)</th>
+                <th>Password (Cột C)</th>
+                <th>Mã mời (Cột D)</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
-        <tbody id="tbody"></tbody>
+        <tbody id="tbody">
+            <tr><td colspan="6" style="text-align:center; padding:30px;">Đang tải dữ liệu từ Google Sheets...</td></tr>
+        </tbody>
     </table>
 </div>
 
 <script>
-// Danh sách tài khoản của bạn (Bạn có thể thêm bớt ở đây)
-const MY_ACCOUNTS = [
-    { email: "email1@gmail.com", pass: "pass1" },
-    { email: "email2@gmail.com", pass: "pass2" },
-    // Thêm các dòng khác tương tự...
-];
+// LINK WEB APP BẠN VỪA CUNG CẤP
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxvECDp69CvpEWLrFBG1mqjxoskNjOYPZAu4Dp961JpY_lDwhp0_qiQBoX4i2WjuIO1/exec'; 
+// LINK ĐỌC DỮ LIỆU TỪ SHEET
+const SHEET_JSON_URL = 'https://opensheet.elk.sh/1fU4ppbOWDikPkEWUdXiyqrUn8JHXvt-PJjS778J-R8M/Trang%20t%C3%ADnh1';
 
 let currentEmail = null;
 let currentIndex = null;
 
-// 1. HÀM LOAD DỮ LIỆU TỪ BỘ NHỚ TRÌNH DUYỆT
-function renderTable() {
-    const tbody = document.getElementById('tbody');
-    tbody.innerHTML = '';
-
-    MY_ACCOUNTS.forEach((acc, i) => {
-        // Lấy dữ liệu cũ đã lưu (nếu có)
-        const savedInvite = localStorage.getItem(`INVITE_${acc.email}`) || "Chờ nhặt mã...";
-        const savedChannel = localStorage.getItem(`CHANNEL_${acc.email}`) || "";
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td><strong>${acc.email}</strong></td>
-            <td>${acc.pass}</td>
-            <td><input type="text" class="input-channel" id="channel-${i}" value="${savedChannel}" onchange="saveChannel('${acc.email}', this.value)" placeholder="Dán ID kênh..."></td>
-            <td class="invite-link" id="invite-res-${i}">${savedInvite}</td>
-            <td>
-                <button class="btn btn-login" onclick="login('${acc.email}','${acc.pass}', ${i})">LOGIN</button>
-                <button class="btn btn-buff" onclick="buff('${acc.email}', ${i})">BUFF</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-// 2. LẮNG NGHE USERSCRIPT GỬI MÃ VỀ
-setInterval(() => {
+// LẮNG NGHE MÃ MỜI TỪ USERSCRIPT VÀ GHI LÊN SHEET
+setInterval(async () => {
     const collectedLink = localStorage.getItem('VS_LAST_COLLECTED_LINK');
     
     if (collectedLink && currentEmail) {
-        // Lưu vào bộ nhớ máy tính
-        localStorage.setItem(`INVITE_${currentEmail}`, collectedLink);
-        
-        // Cập nhật giao diện
+        const statusBox = document.getElementById('sync-status');
         const cell = document.getElementById(`invite-res-${currentIndex}`);
-        if(cell) cell.innerText = collectedLink;
+        
+        statusBox.innerText = "🔄 Đang đồng bộ Sheet cho " + currentEmail + "...";
+        statusBox.style.color = "#d35400";
+        cell.innerText = "⏳ Đang ghi Sheet...";
 
-        // Xóa link tạm
+        try {
+            // Thực hiện ghi dữ liệu lên Google Sheets
+            await fetch(`${WEB_APP_URL}?email=${encodeURIComponent(currentEmail)}&code=${encodeURIComponent(collectedLink)}`, { mode: 'no-cors' });
+            
+            // Cập nhật giao diện sau khi ghi thành công
+            cell.innerText = collectedLink;
+            statusBox.innerText = "✅ Đã lưu vào Cột D thành công!";
+            statusBox.style.color = "green";
+        } catch (e) {
+            statusBox.innerText = "❌ Lỗi kết nối khi ghi Sheet!";
+            statusBox.style.color = "red";
+            cell.innerText = "❌ Lỗi lưu";
+        }
+        
+        // Xóa mã tạm để tránh lặp
         localStorage.removeItem('VS_LAST_COLLECTED_LINK');
         currentEmail = null;
-        alert("✅ Đã nhặt và lưu mã thành công!");
+        currentIndex = null;
     }
 }, 1000);
+
+// TẢI DANH SÁCH TỪ SHEET
+async function loadData() {
+    try {
+        const res = await fetch(SHEET_JSON_URL);
+        const data = await res.json();
+        const tbody = document.querySelector('#tbody');
+        tbody.innerHTML = '';
+
+        data.forEach((row, i) => {
+            if(!row.email) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${row.platform || 'VSPhone'}</td>
+                <td><strong>${row.email}</strong></td>
+                <td style="font-family:monospace">${row.password}</td>
+                <td class="invite-link" id="invite-res-${i}">${row.invite || 'Chờ nhặt mã...'}</td>
+                <td>
+                    <button class="btn btn-login" onclick="login('${row.email}','${row.password}', ${i})">LOGIN</button>
+                    <button class="btn btn-buff" onclick="buff('${row.invite}', ${i})">BUFF</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('sync-status').innerText = "Cloud Online (" + data.length + " acc)";
+    } catch (e) {
+        document.getElementById('sync-status').innerText = "❌ Lỗi tải dữ liệu!";
+    }
+}
 
 function login(email, pass, index) {
     currentIndex = index;
     currentEmail = email;
     const win = window.open('https://cloud.vsphone.com/login', '_blank');
+    
     setTimeout(() => {
         win.postMessage({ type: 'AUTO_LOGIN', email, password: pass }, 'https://cloud.vsphone.com');
-        setTimeout(() => { win.location.href = "https://cloud.vsphone.com/share/invite"; }, 3000);
+        setTimeout(() => { 
+            win.location.href = "https://cloud.vsphone.com/share/invite"; 
+        }, 3000);
     }, 2000);
 }
 
-function saveChannel(email, val) {
-    localStorage.setItem(`CHANNEL_${email}`, val);
+function buff(inviteCode, index) {
+    // Nếu chưa có mã trên Sheet thì lấy mã từ ô hiển thị tạm
+    const invite = inviteCode && inviteCode !== '...' ? inviteCode : document.getElementById(`invite-res-${index}`).innerText;
+    
+    if (invite.includes("Chờ") || !invite) {
+        return alert("Vui lòng nhặt mã (Login) trước khi Buff!");
+    }
+    
+    const channelId = prompt("Nhập ID kênh Discord:");
+    if (channelId) {
+        window.open(`https://discord.com/channels/@me/${channelId}?buff=true`, '_blank');
+    }
 }
 
-function buff(email, index) {
-    const invite = localStorage.getItem(`INVITE_${email}`);
-    const channelId = document.getElementById(`channel-${index}`).value;
-
-    if (!invite) return alert("Chưa có mã mời!");
-    if (!channelId) return alert("Hãy nhập Channel ID!");
-
-    window.open(`https://discord.com/channels/@me/${channelId}?buff=true`, '_blank');
-}
-
-renderTable();
+loadData();
 </script>
 </body>
 </html>
